@@ -1,0 +1,61 @@
+﻿@model DAL.Entities.ExamEntity
+@{
+    ViewData["Title"] = "Show Exam";
+
+}
+<h1>@ViewData["Title"]</h1>
+
+<div class="row random-data">
+    <div class="col-12">
+        <h3 id="Title">@Model.Title</h3>
+        <section id="Content" style="max-height: 300px; overflow-y: auto;">@Html.Raw(Model.Content)</section>
+    </div>
+</div>
+
+<hr class="my-2" />
+<section>
+    @{
+        var lables = new string[] { "A Answer", "B Answer", "C Answer", "D Answer" };
+    }
+    @for (int i = 0; i < 4; i++)
+    {
+        <div class="row shadow">
+            <div class="col-12">
+                <input readonly type="text" class="form-control shadow m-2" id="Question_@i" placeholdere="Question" data-id="@Model.Questions[i].Id" value="@Model.Questions[i].Question">
+            </div>
+            @for (int j = 0; j < 4; j++)
+            {
+                var id = "Answer_" + i + "_" + j;
+                <div class="col-6">
+                    <input readonly type="text" class="form-control shadow m-2" id="@id" placeholdere="@lables[j]" data-id="@Model.Questions[i].Answers[j].Id" value="@Model.Questions[i].Answers[j].Answer">
+                </div>
+            }
+
+            <div class="col-12">
+                <div class="row">
+                    <div class="col-6 offset-3">
+                        <select readonly id="Correctness_@i" class="form-control shadow m-2">
+                            @for (int k = 0; k < lables.Length; k++)
+                            {
+                                if (Model.Questions[i].Answers[k].Correctness == true)
+                                {
+                                    <option selected value="@k">@lables[k]</option>
+                                }
+                                else
+                                {
+                                    <option  value="@k">@lables[k]</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    }
+</section>
+
+@section scripts {
+    <script>
+    </script>
+}

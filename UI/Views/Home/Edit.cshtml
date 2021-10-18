@@ -1,0 +1,113 @@
+﻿@model DAL.Entities.ExamEntity
+@{
+    ViewData["Title"] = "Edit Exam";
+
+}
+<h1>@ViewData["Title"]</h1>
+
+<div class="row random-data">
+    <div class="col-12">
+        <h3 id="Title">@Model.Title</h3>
+        <section id="Content" style="max-height: 300px; overflow-y: auto;">@Html.Raw(Model.Content)</section>
+    </div>
+</div>
+
+<hr class="my-2" />
+<section>
+    @{
+        var lables = new string[] { "A Answer", "B Answer", "C Answer", "D Answer" };
+    }
+    @for (int i = 0; i < 4; i++)
+    {
+        <div class="row shadow">
+            <div class="col-12">
+                <input type="text" class="form-control shadow m-2" id="Question_@i" placeholdere="Question" data-id="@Model.Questions[i].Id" value="@Model.Questions[i].Question">
+            </div>
+            @for (int j = 0; j < 4; j++)
+            {
+                var id = "Answer_" + i + "_" + j;
+                <div class="col-6">
+                    <input type="text" class="form-control shadow m-2" id="@id" placeholdere="@lables[j]" data-id="@Model.Questions[i].Answers[j].Id" value="@Model.Questions[i].Answers[j].Answer">
+                </div>
+            }
+
+            <div class="col-12">
+                <div class="row">
+                    <div class="col-6 offset-3">
+                        <select id="Correctness_@i" class="form-control shadow m-2">
+                            @for (int k = 0; k < lables.Length; k++)
+                            {
+                                if (Model.Questions[i].Answers[k].Correctness == true)
+                                {
+                                    <option selected value="@k">@lables[k]</option>
+                                }
+                                else
+                                {
+                                    <option  value="@k">@lables[k]</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    }
+    <div class="text-center m-auto">
+        <a href="javascript:save()" class="btn btn-primary my-5">Save</a>
+    </div>
+</section>
+
+@{ 
+    Model.Content = null;
+}
+
+@section scripts {
+    <script>
+        var exam = JSON.parse(`@Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(Model))`);
+        function save() {
+            for (var i = 0; i < 4; i++) {
+                exam.Questions[i].Question = $('#Question_' + i).val();
+                for (var j = 0; j < 4; j++) {
+                    exam.Questions[i].Answers[j].Answer = $('#Answer_' + i + '_' + j).val();
+                    exam.Questions[i].Answers[j].Correctness = $('#Correctness_' + i).val() == j;
+                }
+            }
+
+            $.ajax({
+                type: "PUT",
+                url: 'https://localhost:44393/api/Exam',
+                beforeSend: function (request) {
+                    request.setRequestHeader("Authorization", 'Bearer @ViewData["Token"]');
+                },
+                data: JSON.stringify(exam),
+                success: function (res) {
+                    if (res.success) {
+                        alert('Başarılı!');
+                    } else {
+                        alert('HATA!    ' + res.error.errorMessage);
+                    }
+                },
+                error: function (e) {
+                    console.error(e);
+                    alert('HATA! Lütfen konsolu açın.');
+                },
+                dataType: "json",
+                contentType: "application/json"
+            });
+        }
+
+        function fillDemoData() {
+            for (var i = 0; i < 4; i++) {
+                $('#Question_' + i).val('Question ' + i)
+                for (var j = 0; j < 4; j++) {
+                    $('#Answer_' + i + '_' + j).val('Answer ' + i + ' ' + j);
+                }
+            }
+        }
+
+        $(function () {
+            //fillDemoData()
+        })
+    </script>
+}

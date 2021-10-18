@@ -1,0 +1,102 @@
+﻿@using System.Collections.Generic
+@using System.Linq
+@model List<DAL.Entities.ExamEntity>
+@{
+    ViewData["Title"] = "Exams";
+}
+
+<div class="text-center">
+    <h1 class="display-4">@ViewData["Title"]</h1>
+</div>
+
+
+<a class="btn btn-primary mx-auto my-2" asp-area="" asp-controller="Home" asp-action="New"><i class='fa fa-plus'></i></a>
+
+<div id="wrapper"></div>
+
+<link href="https://unpkg.com/tabulator-tables@4.9.3/dist/css/tabulator.min.css" rel="stylesheet">
+<script type="text/javascript" src="https://unpkg.com/tabulator-tables@4.9.3/dist/js/tabulator.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta2/css/all.min.css" integrity="sha512-YWzhKL2whUzgiheMoBFwW8CKV4qpHQAEuvilg9FAn5VJUDwKZZxkJNuGM4XkWuk94WCrrwslk8yWNGmY1EduTA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+@section scripts {
+    <script>
+        var table;
+        var data = `@Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(Model))`;
+        console.log(data)
+        $(function () {
+
+            table = new Tabulator("#wrapper", {
+                data: JSON.parse(data),
+                height: "311px",
+                columns: [
+                    { title: "Id", field: "Id" },
+                    { title: "Title", field: "Title" },
+                    { title: "CreatedAt", field: "CreatedAt", hozAlign: "center" },
+
+                    {
+                        title: "Actions",
+                        sorter: false,
+                        width: 175,
+
+                        formatter: function (value, data, cell, row, options) { //plain text value
+                            //console.log(value._cell.row.data.Id)
+                            return `
+                                    <a class="btn btn-success py-1 px-2 mr-1" href="javascript:showRow(${value._cell.row.data.Id})"><i class='fa fa-eye'></i></a>
+                                    <a class="btn btn-warning py-1 px-2 mr-1" href="javascript:editRow(${value._cell.row.data.Id})"><i class='fa fa-edit'></i></a>
+                                    <a class="btn btn-danger py-1 px-2 mr-1" href="javascript:deleteRow(${value._cell.row.data.Id})"><i class='fa fa-trash'></i></a>
+                                    <a class="btn btn-secondary py-1 px-2 mr-1" href="javascript:studentRow(${value._cell.row.data.Id})"><i class='fa fa-user'></i></a>
+                                `
+                        },
+                    },
+                ],
+
+            });
+
+            //table.on("rowSelectionChanged", function (data, rows) {
+            //    console.log(data, rows)
+            //});
+        })
+
+        function showRow(id) {
+            location.href = "/Show/" + id;
+        }
+        function editRow(id) {
+            location.href = "/Edit/" + id;
+        }
+        function studentRow(id) {
+            location.href = "/Student/Exam/" + id;
+        }
+        function deleteRow(id) {
+            console.log(id)
+            var cn = confirm("Row Delete Confirmation!");
+            if (cn) {
+            $.ajax({
+                type: "DELETE",
+                url: 'https://localhost:44393/api/Exam/' + id,
+                beforeSend: function (request) {
+                    request.setRequestHeader("Authorization", 'Bearer @ViewData["Token"]');
+                },
+                //data: JSON.stringify(exam),
+                success: function (res) {
+                    if (res.success) {
+                        alert('Başarılı!');
+                        //$('#info').html('<span style="color: green">Başarılı!</span>');
+                        //$('#business_days').html(res.data.businessDays);
+                        //$('#penalty_days').html(reds.data.penaltyDays);
+                        location.reload();
+                    } else {
+                        alert('HATA!    ' + res.error.errorMessage);
+                        //$('#info').html('<p style="color: red">HATA!<br>' + res.error.errorMessage + '</p>');
+                    }
+                },
+                error: function (e) {
+                    console.error(e);
+                    alert('HATA! Lütfen konsolu açın.');
+                },
+                dataType: "json",
+                contentType: "application/json"
+            });
+            }
+
+        }
+    </script>
+}

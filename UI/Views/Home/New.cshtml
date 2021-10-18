@@ -1,0 +1,158 @@
+﻿@{
+    ViewData["Title"] = "New Exam";
+    var RandomDataList = ViewData["RandomDataList"] as List<BLL.Models.RandomData>;
+    var RandomDataListString = Newtonsoft.Json.JsonConvert.SerializeObject(RandomDataList);
+
+}
+<h1>@ViewData["Title"]</h1>
+
+<div class="row">
+    <div class="col-6 offset-3">
+        @*<input id="RandomDataList" type="hidden" value="@RandomDataList" />*@
+        <select class="form-control shadow m-2" onchange="randomDataSelected(this)">
+            <option value="">Select Subject</option>
+            @for (int i = 0; i < RandomDataList.Count; i++)
+            {
+                var ii = i + 1;
+                <option value="@ii">@RandomDataList[i].Title</option>
+            }
+        </select>
+    </div>
+</div>
+
+@*<div class="form-group">
+        <input type="text" class="form-control" id="title" placeholdere="title">
+    </div>
+    <div class="form-group">
+        <textarea class="form-control" id="content" rows="3"></textarea>
+    </div>*@
+
+<div class="row random-data">
+    <div class="col-12">
+        @for (int i = 0; i < RandomDataList.Count; i++)
+        {
+            var ii = i + 1;
+            <h3 id="Title_@i" class="d-none">@RandomDataList[i].Title</h3>
+            <section id="Content_@i" class="d-none" style="max-height: 300px; overflow-y: auto;">@Html.Raw(RandomDataList[i].Content)</section>
+        }
+    </div>
+</div>
+
+<hr class="my-2" />
+<section>
+    @{
+        var lables = new string[] { "A Answer", "B Answer", "C Answer", "D Answer" };
+    }
+    @for (int i = 0; i < 4; i++)
+    {
+        <div class="row shadow">
+            <div class="col-12">
+                <input type="text" class="form-control shadow m-2" id="Question_@i" placeholdere="Question">
+            </div>
+            @for (int j = 0; j < 4; j++)
+            {
+                var id = "Answer_" + i + "_" + j;
+                <div class="col-6">
+                    <input type="text" class="form-control shadow m-2" id="@id" placeholdere="@lables[j]">
+                </div>
+            }
+
+            <div class="col-12">
+                <div class="row">
+                    <div class="col-6 offset-3">
+                        <select id="Correctness_@i" class="form-control shadow m-2">
+                            @for (int k = 0; k < lables.Length; k++)
+                            {
+                                <option value="@k">@lables[k]</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    }
+    <div class="text-center m-auto">
+        <a href="javascript:save()" class="btn btn-primary my-5">Save</a>
+    </div>
+</section>
+
+@section scripts {
+    <script>
+        var last = -1;
+        function randomDataSelected(that) {
+            if ($(that).val() == '') {
+                return
+            }
+            $('#Title_' + last).addClass('d-none')
+            $('#Content_' + last).addClass('d-none')
+
+            last = $(that).val() - 1;
+            $('#Title_' + last).removeClass('d-none')
+            $('#Content_' + last).removeClass('d-none')
+        }
+
+        function save() {
+            var exam = {
+                "Title": $('#Title_' + last).html(),
+                "Content": $('#Content_' + last).html(),
+                "Questions": [],
+            };
+
+            for (var i = 0; i < 4; i++) {
+                var question = {
+                    Question: "",
+                    Answers: []
+                }
+                question.Question = $('#Question_' + i).val();
+                for (var j = 0; j < 4; j++) {
+                    var answer = {
+                        Answer: "",
+                        Correctness: false
+                    }
+                    answer.Answer = $('#Answer_' + i + '_' + j).val();
+                    answer.Correctness = $('#Correctness_' + i).val() == j;
+                    question.Answers.push(answer);
+                }
+                exam.Questions.push(question);
+            }
+            exam.Title = $('#Title_' + last).html()
+            exam.Content = $('#Content_' + last).html()
+
+            $.ajax({
+                type: "POST",
+                url: 'https://localhost:44393/api/Exam',
+                beforeSend: function (request) {
+                    request.setRequestHeader("Authorization", 'Bearer @ViewData["Token"]');
+                },
+                data: JSON.stringify(exam),
+                success: function (res) {
+                    if (res.success) {
+                        alert('Başarılı!');
+                    } else {
+                        alert('HATA!    ' + res.error.errorMessage);
+                    }
+                },
+                error: function (e) {
+                    console.error(e);
+                    alert('HATA! Lütfen konsolu açın.');
+                },
+                dataType: "json",
+                contentType: "application/json"
+            });
+        }
+
+        function fillDemoData() {
+            for (var i = 0; i < 4; i++) {
+                $('#Question_' + i).val('Question ' + i)
+                for (var j = 0; j < 4; j++) {
+                    $('#Answer_' + i + '_' + j).val('Answer ' + i + ' ' + j);
+                }
+            }
+        }
+
+        $(function () {
+            fillDemoData()
+        })
+    </script>
+}

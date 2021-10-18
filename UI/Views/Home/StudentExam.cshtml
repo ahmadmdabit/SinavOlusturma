@@ -1,0 +1,151 @@
+﻿@model DAL.Entities.ExamEntity
+@{
+    ViewData["Title"] = "Student Exam";
+
+}
+<h1>@ViewData["Title"]</h1>
+
+<div class="row random-data">
+    <div class="col-12">
+        <h3 id="Title">@Model.Title</h3>
+        <section id="Content" style="max-height: 300px; overflow-y: auto;">@Html.Raw(Model.Content)</section>
+    </div>
+</div>
+
+<hr class="my-2" />
+<section>
+    @{
+        var lables = new string[] { "A) ", "B) ", "C) ", "D) " };
+        var answerIds = new List<string>();
+    }
+    @for (int i = 0; i < 4; i++)
+    {
+        <div class="row shadow">
+            <div class="col-12">
+                <input readonly type="text" class="form-control shadow m-2" id="Question_@i" placeholdere="Question" data-id="@Model.Questions[i].Id" value="@Model.Questions[i].Question">
+            </div>
+            @for (int j = 0; j < 4; j++)
+            {
+                var id = "Answer_" + i + "_" + j;
+                <div class="col-12 rounded">
+                    @*<input onclick="answerSelected(this)" readonly type="text" class="form-control shadow m-2" id="@id" placeholdere="@lables[j]" data-id="@Model.Questions[i].Answers[j].Id" data-qid="@Model.Questions[i].Id" value="">*@
+                    <div class="form-check">
+                        <label class="mr-4">@lables[j] </label>
+                        <input class="form-check-input" type="radio" name="answers_@i" id="@id" value="@Model.Questions[i].Answers[j].Id">
+                        <label class="form-check-label" for="@id">
+                            @Model.Questions[i].Answers[j].Answer
+                        </label>
+                    </div>
+                </div>
+                answerIds.Add(id);
+            }
+
+        </div>
+    }
+    <div class="text-center m-auto">
+        <a id="saveBtn" href="javascript:save()" class="btn btn-primary my-5">Save</a>
+    </div>
+</section>
+
+@section scripts {
+    <script>
+        var correctness = [0, 0, 0, 0];
+
+        function save() {
+            // Get exam (for checking the answers)
+            $.ajax({
+                type: "GET",
+                url: 'https://localhost:44393/api/Exam/@ViewData["ExamId"]',
+                beforeSend: function (request) {
+                    request.setRequestHeader("Authorization", 'Bearer @ViewData["Token"]');
+                },
+                //data: JSON.stringify(examQuestionAnswer),
+                success: function (res) {
+                    if (res.success) {
+                        // Check the correctness
+                        console.log(res)
+                        for (var i = 0; i < res.data.questions.length; i++) {
+                            console.log(i, $('[name="answers_' + i + '"]:checked').val())
+                            var found = false;
+                            for (var j = 0; j < res.data.questions[i].answers.length; j++) {
+                                if (res.data.questions[i].answers[j].correctness) {
+                                    if ($('[name="answers_' + i + '"]:checked').val() == res.data.questions[i].answers[j].id) {
+                                        $('#Answer_' + i + '_' + j).parent().addClass('bg-success');
+                                        $('[name="answers_' + i + '"]:checked').data('correctness', '1');
+                                        correctness[i] = true;
+                                        found = true;
+                                    }
+                                }
+                            }
+                            if (!found) {
+                                $('[name="answers_' + i +'"]').each(function (k, v) {
+                                    if ($(v).prop('checked')) {
+                                        $(v).parent().addClass('bg-danger');
+                                        $(v).data('correctness', '0');
+                                        correctness[i] = false;
+
+                                    }
+                                })
+                            }
+                        }
+
+                        // Save attened exam
+                        saveToServer();
+                    } else {
+                        alert('HATA!    ' + res.error.errorMessage);
+                    }
+                },
+                error: function (e) {
+                    console.error(e);
+                    alert('HATA! Lütfen konsolu açın.');
+                },
+                dataType: "json",
+                contentType: "application/json"
+            });
+
+        }
+
+        function saveToServer() {
+
+
+            var dataList = [];
+
+            for (var i = 0; i < 4; i++) {
+                console.log(i)
+                var examQuestionAnswer = {
+                    "UserId": @ViewData["UserId"],
+                    "ExamId": @ViewData["ExamId"],
+                    "QuestionId": $('#Question_' + i).data('id'),
+                    "AnswerId": Number($('[name="answers_' + i + '"]:checked').val()),
+                    "Correctness": correctness[i],
+                };
+                dataList.push(examQuestionAnswer);
+            }
+
+            console.log(dataList)
+            
+            $.ajax({
+                type: "POST",
+                url: 'https://localhost:44393/api/UserAttendedExam/Bulk',
+                beforeSend: function (request) {
+                    request.setRequestHeader("Authorization", 'Bearer @ViewData["Token"]');
+                },
+                data: JSON.stringify(dataList),
+                success: function (res) {
+                    if (res.success) {
+                        alert('Sunucu kaydedildi...');
+                        $('#saveBtn').addClass('disabled')
+                    } else {
+                        alert('HATA!    ' + res.error.errorMessage);
+                    }
+                },
+                error: function (e) {
+                    console.error(e);
+                    alert('HATA! Lütfen konsolu açın.');
+                },
+                dataType: "json",
+                contentType: "application/json"
+            });
+        }
+    </script>
+}
